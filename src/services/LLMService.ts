@@ -2,7 +2,30 @@ import { ConversationBlock } from '../models/ConversationBlock';
 import { DecisionCandidate } from '../models/DecisionCandidate';
 import { DecisionBrief } from '../models/DecisionBrief';
 import { rateLimiter } from '../utils/rate-limiter';
-import { metrics } from '../lib/metrics';
+
+// Import metrics only on server side to avoid browser compatibility issues
+let metrics: any;
+if (typeof window === 'undefined') {
+  try {
+    metrics = require('../lib/metrics').metrics;
+  } catch (error) {
+    console.warn('Metrics not available in this environment:', error);
+    metrics = {
+      increment: () => {},
+      get: () => 0,
+      reset: () => {},
+      prometheus: async () => ''
+    };
+  }
+} else {
+  // Browser environment - provide safe fallback
+  metrics = {
+    increment: () => {},
+    get: () => 0,
+    reset: () => {},
+    prometheus: async () => ''
+  };
+}
 
 export class LLMService {
   // Configurable base URL and fetch function to make the service test-friendly

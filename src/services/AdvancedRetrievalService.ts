@@ -11,7 +11,22 @@ import { LLMService } from './LLMService';
 import { DecisionBrief } from '../models/DecisionBrief';
 import { ConversationEvent } from '../models/ConversationEvent';
 import { logger } from '../lib/logger';
-import { metrics } from '../lib/metrics';
+
+// Import metrics only on server side to avoid browser compatibility issues
+let metrics: any;
+if (typeof window === 'undefined') {
+  try {
+    metrics = require('../lib/metrics').metrics;
+  } catch (error) {
+    console.warn('Metrics not available in this environment:', error);
+    metrics = {
+      increment: () => {},
+      get: () => 0,
+      reset: () => {},
+      prometheus: async () => ''
+    };
+  }
+}
 
 // ============================================================================
 // TYPES
@@ -245,7 +260,7 @@ class AdvancedRetrievalService {
           userId: r.metadata?.userId || '',
           createdAt: r.metadata?.createdAt || new Date(),
           updatedAt: r.metadata?.updatedAt || new Date(),
-        });
+        } as DecisionBrief);
       });
 
     // Add conversations that meet threshold
@@ -264,7 +279,7 @@ class AdvancedRetrievalService {
           userId: r.metadata?.userId || '',
           createdAt: r.metadata?.createdAt || new Date(),
           updatedAt: r.metadata?.updatedAt || new Date(),
-        });
+        } as ConversationEvent);
       });
 
     // Sort by confidence score

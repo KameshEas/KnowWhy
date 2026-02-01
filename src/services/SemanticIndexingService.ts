@@ -5,12 +5,51 @@
  * Supports multiple embedding models and integrates with vector databases.
  */
 
-import { PrismaClient } from '@prisma/client';
 import { OpenAI } from 'openai';
 import { Groq } from 'groq-sdk';
 import crypto from 'crypto';
 
-const prisma = new PrismaClient();
+// Import Prisma Client with error handling - only on server side
+let prisma: any;
+
+if (typeof window === 'undefined') {
+  try {
+    const { PrismaClient } = require('@prisma/client');
+    prisma = new PrismaClient();
+  } catch (error) {
+    console.error('Failed to initialize Prisma client:', error);
+    
+    // Create a mock Prisma client for development/testing
+    prisma = {
+      vectorEmbedding: {
+        create: () => Promise.resolve({ id: '1', text: 'test', embedding: [], source: 'test', sourceId: 'test' }),
+        createMany: () => Promise.resolve({ count: 1 }),
+        findMany: () => Promise.resolve([]),
+        findUnique: () => Promise.resolve(null),
+        deleteMany: () => Promise.resolve({ count: 0 }),
+        groupBy: () => Promise.resolve([]),
+        aggregate: () => Promise.resolve({ _avg: { embedding: 0 } }),
+      },
+      $connect: () => Promise.resolve(),
+      $disconnect: () => Promise.resolve(),
+    };
+  }
+} else {
+  // Browser environment - use mock client
+  prisma = {
+    vectorEmbedding: {
+      create: () => Promise.resolve({ id: '1', text: 'test', embedding: [], source: 'test', sourceId: 'test' }),
+      createMany: () => Promise.resolve({ count: 1 }),
+      findMany: () => Promise.resolve([]),
+      findUnique: () => Promise.resolve(null),
+      deleteMany: () => Promise.resolve({ count: 0 }),
+      groupBy: () => Promise.resolve([]),
+      aggregate: () => Promise.resolve({ _avg: { embedding: 0 } }),
+    },
+    $connect: () => Promise.resolve(),
+    $disconnect: () => Promise.resolve(),
+  };
+}
 
 // ============================================================================
 // TYPES

@@ -5,6 +5,8 @@
  * Provides quick access to decision briefs and related context.
  */
 
+'use client';
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { DecisionBrief } from '../models/DecisionBrief';
 import { DecisionBriefService } from '../services/DecisionBriefService';
@@ -186,11 +188,11 @@ export const DecisionTimeline: React.FC<DecisionTimelineProps> = ({
         </div>
         
         <div className="flex space-x-2">
-          <Button variant="outline" size="sm">
+          <Button variant="secondary" size="sm">
             <Filter className="h-4 w-4 mr-2" />
             Filters
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="secondary" size="sm">
             <Clock className="h-4 w-4 mr-2" />
             Timeline View
           </Button>
@@ -217,7 +219,7 @@ export const DecisionTimeline: React.FC<DecisionTimelineProps> = ({
               {(['all', 'pending', 'approved', 'archived'] as const).map(status => (
                 <Button
                   key={status}
-                  variant={filters.status === status ? 'default' : 'outline'}
+                  variant={filters.status === status ? 'primary' : 'secondary'}
                   size="sm"
                   onClick={() => handleStatusFilter(status)}
                 >
@@ -238,7 +240,7 @@ export const DecisionTimeline: React.FC<DecisionTimelineProps> = ({
                 {allTags.map(tag => (
                   <Button
                     key={tag}
-                    variant={filters.tags.includes(tag) ? 'default' : 'outline'}
+                    variant={filters.tags.includes(tag) ? 'primary' : 'secondary'}
                     size="sm"
                     onClick={() => handleTagFilter(tag)}
                   >
@@ -303,8 +305,8 @@ export const DecisionTimeline: React.FC<DecisionTimelineProps> = ({
                       </div>
                     </div>
 
-                    <div className="flex items-center space-x-2">
-                      <Badge variant="outline">
+                  <div className="flex items-center space-x-2">
+                      <Badge variant="success">
                         Confidence: {(brief.confidence * 100).toFixed(0)}%
                       </Badge>
                       <Button
@@ -376,7 +378,7 @@ export const DecisionTimeline: React.FC<DecisionTimelineProps> = ({
           {totalPages > 1 && (
             <div className="flex justify-between items-center">
               <Button
-                variant="outline"
+                variant="secondary"
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
               >
@@ -389,7 +391,7 @@ export const DecisionTimeline: React.FC<DecisionTimelineProps> = ({
               </div>
 
               <Button
-                variant="outline"
+                variant="secondary"
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                 disabled={currentPage === totalPages}
               >

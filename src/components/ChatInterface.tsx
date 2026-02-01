@@ -5,6 +5,8 @@
  * Integrates with the Natural Language Query Service and Advanced Retrieval Service.
  */
 
+'use client';
+
 import React, { useState, useEffect, useRef } from 'react';
 import { NaturalLanguageQueryService } from '../services/NaturalLanguageQueryService';
 import { AdvancedRetrievalService } from '../services/AdvancedRetrievalService';
@@ -22,6 +24,8 @@ interface ChatMessage {
     queryUnderstanding?: any;
     searchMetadata?: any;
     citations?: any[];
+    feedbackGiven?: boolean;
+    feedbackRating?: 1 | 2 | 3 | 4 | 5;
   };
 }
 

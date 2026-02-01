@@ -27,6 +27,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   // ViewModels (using static methods)
   const decisionDetectionVM = DecisionDetectionViewModel;
@@ -372,15 +373,17 @@ export default function Home() {
                       <div className="space-y-4">
                         {conversations
                           .find(c => c.id === selectedConversation)
-                          ?.blocks.map((block, index) => (
+                          ?.text.split('\n')
+                          .filter(line => line.trim())
+                          .map((line, index) => (
                             <div key={index} className="bg-gray-50 p-4 rounded-lg">
                               <div className="flex justify-between items-start mb-2">
-                                <span className="font-medium text-gray-900">{block.author}</span>
+                                <span className="font-medium text-gray-900">{conversations.find(c => c.id === selectedConversation)?.author}</span>
                                 <span className="text-xs text-gray-500">
-                                  {new Date(block.timestamp).toLocaleString()}
+                                  {new Date(conversations.find(c => c.id === selectedConversation)?.timestamp || '').toLocaleString()}
                                 </span>
                               </div>
-                              <p className="text-gray-700">{block.text}</p>
+                              <p className="text-gray-700">{line}</p>
                             </div>
                           ))}
                       </div>
@@ -419,7 +422,13 @@ export default function Home() {
               {decisions.map((decision) => (
                 <DecisionCard
                   key={decision.id}
-                  decision={decision}
+                  decision={{
+                    id: decision.id,
+                    summary: decision.summary,
+                    confidence: decision.confidence,
+                    timestamp: decision.confidence > 0.8 ? 'High' : decision.confidence > 0.6 ? 'Medium' : 'Low',
+                    context: `Decision in ${decision.conversationId}`
+                  }}
                   onAskQuestion={handleAskQuestion}
                   onViewBrief={() => handleGenerateBrief(decision.id)}
                 />
@@ -448,7 +457,15 @@ export default function Home() {
               {briefs.map((brief) => (
                 <BriefCard
                   key={brief.id}
-                  brief={brief}
+                  brief={{
+                    id: brief.id,
+                    decisionSummary: brief.decisionSummary,
+                    problem: brief.problem,
+                    optionsConsidered: brief.optionsConsidered,
+                    rationale: brief.rationale,
+                    participants: brief.participants,
+                    timestamp: new Date().toISOString()
+                  }}
                   onAskQuestion={handleAskQuestion}
                 />
               ))}
@@ -480,11 +497,10 @@ export default function Home() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="h-96 border border-gray-200 rounded-lg overflow-hidden">
+            <div className="h-96 border border-gray-200 rounded-lg overflow-hidden">
             <ChatInterface
-              onSendMessage={handleSendMessage}
-              isLoading={chatLoading}
-              model={selectedModel}
+              userId="demo-user"
+              className="h-full"
             />
           </div>
         </CardContent>
@@ -535,7 +551,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
+      <Header onToggleSidebar={() => setIsSidebarOpen(prev => !prev)} isSidebarOpen={isSidebarOpen} />
       
       <div className="flex">
         <Sidebar
@@ -544,6 +560,8 @@ export default function Home() {
           briefsCount={briefs.length}
           activeSection={activeSection}
           onSectionClick={handleSectionClick}
+          isMobileOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
         />
         
         <main className="flex-1 p-6">
