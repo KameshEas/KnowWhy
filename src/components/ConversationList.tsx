@@ -26,8 +26,18 @@ export const ConversationList: React.FC<ConversationListProps> = ({
       {conversations.map((conversation) => (
         <div
           key={conversation.id}
+          role="button"
+          tabIndex={0}
+          aria-pressed={selectedConversation === conversation.id}
+          aria-label={`Open conversation by ${conversation.author}`}
           onClick={() => onConversationSelect(conversation.id)}
-          className={`p-4 border rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md ${
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onConversationSelect(conversation.id);
+            }
+          }}
+          className={`p-4 border rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
             selectedConversation === conversation.id
               ? 'border-blue-300 bg-blue-50 shadow-md'
               : 'border-gray-200 bg-white hover:border-gray-300'

@@ -7,6 +7,9 @@ interface SidebarProps {
   briefsCount: number;
   onSectionClick: (section: string) => void;
   activeSection: string;
+  // Mobile controls
+  isMobileOpen?: boolean;
+  onClose?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({

@@ -293,9 +293,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
         {/* Typing Indicator */}
         {isTyping && (
-          <div className="flex justify-start">
+          <div className="flex justify-start" role="status" aria-live="polite">
             <div className="bg-gray-50 rounded-lg p-3 shadow-sm">
-              <div className="flex space-x-2">
+              <div className="flex space-x-2" aria-hidden="true">
                 <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
                 <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
                 <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
@@ -331,6 +331,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         <div className="flex space-x-2">
           <input
             type="text"
+            aria-label="Ask a question about decisions"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSendMessage(inputValue)}
@@ -340,6 +341,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
           />
           <button
             onClick={() => handleSendMessage(inputValue)}
+            aria-label="Send question"
             disabled={!inputValue.trim() || isTyping}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >

@@ -7,7 +7,9 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Select } from '../components/ui/select';
 import { Badge } from '../components/ui/badge';
-import { LoadingSpinner } from '../components/LoadingSpinner';
+import { LoadingSpinner, LoadingOverlay } from '../components/LoadingSpinner';
+import { ErrorBanner } from '../components/ui/ErrorBanner';
+import { EmptyState } from '../components/ui/EmptyState';
 import { DecisionCard } from '../components/DecisionCard';
 import { BriefCard } from '../components/BriefCard';
 import { ConversationList } from '../components/ConversationList';
@@ -346,9 +348,12 @@ export default function Home() {
         </CardHeader>
         <CardContent>
           {conversations.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-500">No conversations available. Please upload files first.</p>
-            </div>
+            <EmptyState
+              title="No conversations"
+              message="No conversations available. Please upload files first."
+              actionLabel="Upload files"
+              onAction={() => handleSectionClick('upload')}
+            />
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-1">
@@ -407,16 +412,12 @@ export default function Home() {
         </CardHeader>
         <CardContent>
           {decisions.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-500">No decisions detected yet. Please upload conversations and run decision detection.</p>
-              <Button
-                onClick={() => handleSectionClick('upload')}
-                variant="secondary"
-                className="mt-4"
-              >
-                Go to Upload
-              </Button>
-            </div>
+            <EmptyState
+              title="No decisions"
+              message="No decisions detected yet. Please upload conversations and run decision detection."
+              actionLabel="Go to Upload"
+              onAction={() => handleSectionClick('upload')}
+            />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {decisions.map((decision) => (
@@ -449,9 +450,12 @@ export default function Home() {
         </CardHeader>
         <CardContent>
           {briefs.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-500">No decision briefs available. Generate briefs from detected decisions.</p>
-            </div>
+            <EmptyState
+              title="No briefs"
+              message="No decision briefs available. Generate briefs from detected decisions."
+              actionLabel="Generate from decisions"
+              onAction={() => handleSectionClick('decisions')}
+            />
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {briefs.map((brief) => (
@@ -567,18 +571,21 @@ export default function Home() {
         <main className="flex-1 p-6">
           {/* Status Messages */}
           {error && (
-            <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-              <span>{error}</span>
-              <button onClick={() => setError(null)} className="ml-2 text-red-500 hover:text-red-700">
-                ×
-              </button>
-            </div>
+            <ErrorBanner
+              message={error}
+              onClose={() => setError(null)}
+              onRetry={() => {
+                // best-effort naive retry behavior: reload initial data
+                setError(null);
+                loadInitialData();
+              }}
+            />
           )}
           
           {success && (
-            <div className="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
+            <div role="status" aria-live="polite" className="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
               <span>{success}</span>
-              <button onClick={() => setSuccess(null)} className="ml-2 text-green-500 hover:text-green-700">
+              <button onClick={() => setSuccess(null)} className="ml-2 text-green-500 hover:text-green-700" aria-label="Dismiss success">
                 ×
               </button>
             </div>
@@ -586,12 +593,7 @@ export default function Home() {
 
           {/* Loading Overlay */}
           {isLoading && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white p-6 rounded-lg shadow-xl">
-                <LoadingSpinner />
-                <p className="mt-4 text-gray-600">Processing...</p>
-              </div>
-            </div>
+            <LoadingOverlay text="Processing..." />
           )}
 
           {/* Content */}

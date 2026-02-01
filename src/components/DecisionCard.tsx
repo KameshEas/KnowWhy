@@ -59,6 +59,7 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
             variant="primary"
             size="sm"
             onClick={() => onViewBrief(decision.id)}
+            aria-label={`View brief for ${decision.summary}`}
           >
             View Brief
           </Button>
@@ -66,6 +67,7 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
             variant="secondary"
             size="sm"
             onClick={() => onAskQuestion(`Tell me more about: ${decision.summary}`)}
+            aria-label={`Ask question about ${decision.summary}`}
           >
             Ask Question
           </Button>
