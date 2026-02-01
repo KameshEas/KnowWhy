@@ -1,7 +1,7 @@
-import { ConversationBlock } from '@/models/ConversationBlock';
-import { DecisionCandidate } from '@/models/DecisionCandidate';
-import { DecisionBrief } from '@/models/DecisionBrief';
-import { rateLimiter } from '@/utils/rate-limiter';
+import { ConversationBlock } from '../models/ConversationBlock';
+import { DecisionCandidate } from '../models/DecisionCandidate';
+import { DecisionBrief } from '../models/DecisionBrief';
+import { rateLimiter } from '../utils/rate-limiter';
 
 export class LLMService {
   static async detectDecision(conversation: ConversationBlock): Promise<DecisionCandidate> {
