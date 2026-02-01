@@ -14,7 +14,7 @@ export interface GroqConfig {
 }
 
 export const groqConfig: GroqConfig = {
-  apiKey: process.env.NEXT_PUBLIC_GROQ_API_KEY || '',
+  apiKey: process.env.GROQ_API_KEY || process.env.NEXT_PUBLIC_GROQ_API_KEY || '',
   defaultModel: 'llama-3.3-70b-versatile',
   models: {
     'llama-3.3-70b-versatile': {

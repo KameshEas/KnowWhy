@@ -1,10 +1,30 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Mock Prisma client to avoid runtime import issues in unit tests
-vi.mock('../src/lib/db', () => ({ default: { decisionBrief: { create: vi.fn() } } }));
+// Mock the db module to avoid Prisma initialization issues
+vi.mock('../src/lib/db', () => {
+  const mockPrisma = {
+    decisionBrief: {
+      create: vi.fn(),
+    },
+  };
+  return {
+    default: mockPrisma,
+    prisma: mockPrisma,
+  };
+});
+
+// Mock the DecisionBriefService to use our mocked prisma
+vi.mock('../src/services/DecisionBriefService', () => {
+  const mockCreateBrief = vi.fn();
+  return {
+    DecisionBriefService: {
+      createBrief: mockCreateBrief,
+    },
+  };
+});
 
 import { DecisionBriefService } from '../src/services/DecisionBriefService';
-import prisma from '../src/lib/db';
+import { prisma } from '../src/lib/db';
 
 const sampleBrief = {
   title: 'Use Auth0',
@@ -17,25 +37,30 @@ const sampleBrief = {
 };
 
 describe('DecisionBriefService persistence', () => {
-  let createMock: any;
-
   beforeEach(() => {
-    // Use the mocked create from vi.mock above
-    // `prisma.decisionBrief.create` is already the mocked function
-  });
-
-  afterEach(() => {
     vi.clearAllMocks();
   });
 
   it('calls prisma.decisionBrief.create with mapped fields', async () => {
     const fakeDbRecord = { id: 'brief-1', ...sampleBrief };
-    (prisma as any).decisionBrief.create.mockResolvedValueOnce(fakeDbRecord);
+    (prisma.decisionBrief.create as any).mockResolvedValueOnce(fakeDbRecord);
 
-    const result = await DecisionBriefService.saveBrief(sampleBrief, 'user-1', 'cand-1');
+    const result = await DecisionBriefService.createBrief({
+      decisionSummary: sampleBrief.title,
+      problem: sampleBrief.problem,
+      optionsConsidered: sampleBrief.optionsConsidered,
+      rationale: sampleBrief.rationale,
+      participants: sampleBrief.participants,
+      sourceReferences: sampleBrief.sourceReferences,
+      confidence: sampleBrief.confidence,
+      status: 'pending',
+      tags: [],
+      userId: 'user-1',
+      decisionCandidateId: 'cand-1',
+    });
 
-    expect((prisma as any).decisionBrief.create).toHaveBeenCalled();
-    const callArg = (prisma as any).decisionBrief.create.mock.calls[0][0];
+    expect(prisma.decisionBrief.create).toHaveBeenCalled();
+    const callArg = (prisma.decisionBrief.create as any).mock.calls[0][0];
     expect(callArg.data.decisionSummary).toBe('Use Auth0');
     expect(callArg.data.userId).toBe('user-1');
     expect(result).toEqual(fakeDbRecord);

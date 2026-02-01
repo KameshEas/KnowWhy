@@ -5,26 +5,30 @@ import { rateLimiter } from '../utils/rate-limiter';
 
 // Import metrics only on server side to avoid browser compatibility issues
 let metrics: any;
+
+// Always provide a safe fallback metrics object
+const safeMetricsFallback = {
+  increment: () => {},
+  get: () => 0,
+  reset: () => {},
+  prometheus: async () => ''
+};
+
 if (typeof window === 'undefined') {
   try {
     metrics = require('../lib/metrics').metrics;
   } catch (error) {
     console.warn('Metrics not available in this environment:', error);
-    metrics = {
-      increment: () => {},
-      get: () => 0,
-      reset: () => {},
-      prometheus: async () => ''
-    };
+    metrics = safeMetricsFallback;
   }
 } else {
   // Browser environment - provide safe fallback
-  metrics = {
-    increment: () => {},
-    get: () => 0,
-    reset: () => {},
-    prometheus: async () => ''
-  };
+  metrics = safeMetricsFallback;
+}
+
+// Ensure metrics is never undefined
+if (!metrics) {
+  metrics = safeMetricsFallback;
 }
 
 export class LLMService {
@@ -111,6 +115,12 @@ export class LLMService {
         rationale: result.rationale || '',
         participants: result.participants || [conversation.author],
         sourceReferences: result.sourceReferences || [{ conversationId: conversation.id, text: conversation.text }],
+        confidence: result.confidence || 0.5,
+        status: 'pending',
+        tags: [],
+        userId: 'system',
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
     } catch (error) {
       console.error('Error generating brief:', error);
@@ -122,6 +132,12 @@ export class LLMService {
         rationale: '',
         participants: [conversation.author],
         sourceReferences: [{ conversationId: conversation.id, text: conversation.text }],
+        confidence: 0.5,
+        status: 'pending',
+        tags: [],
+        userId: 'system',
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
     }
   }

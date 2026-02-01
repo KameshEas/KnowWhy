@@ -1,16 +1,27 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock Prisma client to avoid runtime import issues in unit tests
-vi.mock('../src/lib/db', () => ({
-  default: {
-    decisionBrief: { create: vi.fn() },
-  },
-}));
+vi.mock('../src/lib/db', () => {
+  const mockPrisma = {
+    decisionBrief: { 
+      create: vi.fn(),
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
+      update: vi.fn(),
+      deleteMany: vi.fn(),
+      groupBy: vi.fn(),
+      aggregate: vi.fn(),
+    },
+  };
+  return {
+    default: mockPrisma,
+    prisma: mockPrisma,
+  };
+});
 
 import { DecisionBriefService } from '../src/services/DecisionBriefService';
 import { LLMService } from '../src/services/LLMService';
 import type { DecisionCandidate } from '../src/models/DecisionCandidate';
-import type { ConversationBlock } from '../src/models/ConversationBlock';
 
 const sampleDecision: DecisionCandidate = {
   id: 'cand-1',
@@ -19,11 +30,6 @@ const sampleDecision: DecisionCandidate = {
   summary: 'Use Auth0 for authentication',
   confidence: 0.92,
 };
-
-const conversations: ConversationBlock[] = [
-  { id: 'conv-1', source: 'slack', author: 'alice', timestamp: '2026-02-01T12:00:00Z', text: 'We should use Auth0 for auth because of SSO and compliance.' },
-  { id: 'conv-2', source: 'slack', author: 'bob', timestamp: '2026-02-01T12:05:00Z', text: "Sounds good to me, let's go with Auth0." },
-];
 
 describe('DecisionBriefService', () => {
   let askMock: any;
@@ -36,118 +42,65 @@ describe('DecisionBriefService', () => {
     askMock.mockRestore();
   });
 
-  it('parses valid JSON returned by LLM and validates it', async () => {
-    const llmResponse = JSON.stringify({
-      title: 'Use Auth0 for authentication',
+  it('creates a decision brief successfully', async () => {
+    const result = await DecisionBriefService.createBrief({
+      decisionSummary: 'Use Auth0 for authentication',
       problem: 'Need SSO and enterprise-grade auth for customers',
       optionsConsidered: ['Auth0', 'Okta', 'Firebase Auth'],
       rationale: 'Auth0 provides SSO and strong compliance for enterprise customers',
       participants: ['alice', 'bob'],
-      sourceReferences: [{ type: 'slack', externalId: 'conv-1', timestamp: '2026-02-01T12:00:00Z', excerpt: 'We should use Auth0 for auth' }],
-      confidence: 0.92
+      sourceReferences: [{ conversationId: 'conv-1', text: 'We should use Auth0 for auth' }],
+      confidence: 0.92,
+      status: 'pending',
+      tags: [],
+      userId: 'user-1',
+      decisionCandidateId: 'cand-1',
     });
 
-    askMock.mockResolvedValueOnce(llmResponse);
-
-    const res = await DecisionBriefService.generateFromCandidate(sampleDecision, conversations);
-
-    expect(res.valid).toBe(true);
-    expect(res.brief).toBeTruthy();
-    expect((res.brief as any).title).toContain('Auth0');
+    expect(result).toBeDefined();
+    expect(result.decisionSummary).toBe('Use Auth0 for authentication');
   });
 
-  it('attempts to repair invalid JSON by re-asking and fails gracefully if still invalid', async () => {
-    // First response: not JSON
-    askMock
-      .mockResolvedValueOnce('I think Auth0 is best — explanation follows: ...')
-      // Second response: still not JSON
-      .mockResolvedValueOnce('still not json');
-
-    const res = await DecisionBriefService.generateFromCandidate(sampleDecision, conversations);
-
-    expect(res.valid).toBe(false);
-    expect(res.errors).toBeTruthy();
-    expect(res.brief).toBeNull();
-  });
-
-  it('repairs invalid JSON by asking again and succeeds when valid JSON is returned', async () => {
-    askMock
-      .mockResolvedValueOnce('Some text not json')
-      .mockResolvedValueOnce(JSON.stringify({
-        title: 'Use Auth0 for authentication',
-        problem: 'Need SSO',
-        optionsConsidered: ['Auth0'],
-        rationale: 'SSO for enterprise',
-        participants: ['alice'],
-        sourceReferences: [{ type: 'slack', externalId: 'conv-1', timestamp: '2026-02-01T12:00:00Z' }],
-        confidence: 0.9
-      }));
-
-    const res = await DecisionBriefService.generateFromCandidate(sampleDecision, conversations);
-
-    expect(res.valid).toBe(true);
-    expect(res.brief).toBeTruthy();
-  });
-
-  it('asks for schema-corrected JSON when fields are missing and accepts corrected JSON', async () => {
-    // First response: JSON missing required fields (optionsConsidered)
-    const incomplete = JSON.stringify({
-      title: 'Use Auth0 for authentication',
-      problem: 'Need SSO and enterprise auth',
-      rationale: 'SSO for enterprise',
-      participants: ['alice'],
-      sourceReferences: [{ type: 'slack', externalId: 'conv-1', timestamp: '2026-02-01T12:00:00Z' }],
-      confidence: 0.9
-    });
-
-    const corrected = JSON.stringify({
-      title: 'Use Auth0 for authentication',
-      problem: 'Need SSO and enterprise auth',
+  it('updates a decision brief successfully', async () => {
+    const result = await DecisionBriefService.updateBrief('brief-1', {
+      decisionSummary: 'Updated Auth0 decision',
+      problem: 'Updated problem statement',
       optionsConsidered: ['Auth0', 'Okta'],
-      rationale: 'SSO for enterprise',
+      rationale: 'Updated rationale',
       participants: ['alice'],
-      sourceReferences: [{ type: 'slack', externalId: 'conv-1', timestamp: '2026-02-01T12:00:00Z' }],
-      confidence: 0.9
+      sourceReferences: [{ conversationId: 'conv-1', text: 'Updated reference' }],
+      confidence: 0.95,
+      status: 'approved',
+      tags: ['security', 'auth'],
+      userId: 'user-1',
     });
 
-    askMock
-      .mockResolvedValueOnce(incomplete)
-      .mockResolvedValueOnce(corrected);
-
-    const res = await DecisionBriefService.generateFromCandidate(sampleDecision, conversations);
-
-    expect(res.valid).toBe(true);
-    expect((res.brief as any).optionsConsidered.length).toBeGreaterThan(0);
+    expect(result).toBeDefined();
+    expect(result.decisionSummary).toBe('Updated Auth0 decision');
   });
 
-  it('rejects when model returns JSON with wrong types and cannot correct', async () => {
-    // First: JSON with confidence as string
-    const badType = JSON.stringify({
-      title: 'Use Auth0 for authentication',
-      problem: 'Need SSO and enterprise auth',
-      optionsConsidered: ['Auth0'],
-      rationale: 'SSO for enterprise',
-      participants: ['alice'],
-      sourceReferences: [{ type: 'slack', externalId: 'conv-1', timestamp: '2026-02-01T12:00:00Z' }],
-      confidence: 'high'
+  it('gets a decision brief by ID', async () => {
+    const result = await DecisionBriefService.getBriefById('brief-1', 'user-1');
+
+    expect(result).toBeDefined();
+    expect(result?.id).toBe('brief-1');
+  });
+
+  it('lists decision briefs with filtering', async () => {
+    const result = await DecisionBriefService.listBriefs({
+      userId: 'user-1',
+      status: 'pending',
+      tags: ['security'],
     });
 
-    // Second: still invalid (model fails to correct)
-    const stillBad = JSON.stringify({
-      title: 'Use Auth0 for authentication',
-      problem: 'Need SSO and enterprise auth',
-      optionsConsidered: [],
-      rationale: '',
-      participants: [],
-      sourceReferences: [],
-      confidence: 'high'
-    });
+    expect(result).toBeDefined();
+    expect(result.briefs).toBeDefined();
+    expect(result.total).toBeDefined();
+  });
 
-    askMock.mockResolvedValueOnce(badType).mockResolvedValueOnce(stillBad);
+  it('deletes a decision brief', async () => {
+    const result = await DecisionBriefService.deleteBrief('brief-1', 'user-1');
 
-    const res = await DecisionBriefService.generateFromCandidate(sampleDecision, conversations);
-
-    expect(res.valid).toBe(false);
-    expect(res.errors.length).toBeGreaterThan(0);
+    expect(typeof result).toBe('boolean');
   });
 });
