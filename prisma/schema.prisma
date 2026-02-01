@@ -23,6 +23,7 @@ model User {
   conversations Conversation[]
   decisions     DecisionCandidate[]
   briefs        DecisionBrief[]
+  slackWorkspaces SlackWorkspace[]
 
   @@map("users")
 }
@@ -91,4 +92,58 @@ model DecisionBrief {
   user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("decision_briefs")
+}
+
+model SlackWorkspace {
+  id                  String   @id @default(cuid())
+  workspaceId         String   @unique // Slack workspace ID (e.g., T123456789)
+  workspaceName       String   // Team name
+  botUserId           String?  // Bot user ID
+  botAccessToken      String   // For API calls (encrypted in production)
+  installedBy         String   // User email who installed the app
+  userId              String?  // Link to User model (optional)
+  installUrl          String   // Deep link to reinstall if token expires
+  scopes              String[] // OAuth scopes granted: ["channels:read", "messages:read", ...]
+  lastSyncedAt        DateTime? // Last time we fetched messages
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // Relations
+  user                User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  installations       SlackInstallation[]
+  syncStatus          SlackSyncStatus?
+
+  @@map("slack_workspaces")
+}
+
+model SlackInstallation {
+  id                  String   @id @default(cuid())
+  workspaceId         String   @unique // Unique per workspace
+  workspace           SlackWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  botToken            String   // Encrypted bot token
+  userToken           String?  // Encrypted user token (if using user scopes)
+  issuedAt            DateTime @default(now())
+  expiresAt           DateTime? // For refresh token flows
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("slack_installations")
+}
+
+model SlackSyncStatus {
+  id                  String   @id @default(cuid())
+  workspaceId         String   @unique
+  workspace           SlackWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  lastMessageTimestamp String?  // Last message ID processed (for incremental sync)
+  totalChannels       Int      @default(0)
+  totalMessages       Int      @default(0)
+  errorCount          Int      @default(0)
+  lastErrorMessage    String?
+  isSyncing           Boolean  @default(false)
+  lastSyncedAt        DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("slack_sync_status")
 }
