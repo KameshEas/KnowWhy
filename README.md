@@ -1,237 +1,287 @@
-# KnowWhy - Decision Detection and Chat Application
+# KnowWhy - Decision Intelligence Platform
 
-A Next.js application that helps users detect decision points in conversations and provides structured decision briefs to support better decision-making.
+An AI-powered platform that automatically detects, documents, and retrieves decisions from team conversations across Slack, meetings, and other communication channels.
 
-## Features
+## 🎯 Overview
 
-- **Decision Detection**: Automatically identifies decision points in conversations using AI
-- **Decision Briefs**: Generate structured briefs for important decisions with context and options
-- **Multi-Model Support**: Supports both Groq and OpenRouter AI providers
-- **Chat Interface**: Interactive chat interface for conversations and decision discussions
-- **Conversation Management**: Organize and manage multiple conversations with decision tracking
+KnowWhy solves the critical problem of decision visibility and context in modern software teams. It automatically:
 
-## Tech Stack
+- **Detects decisions** in real-time from conversations
+- **Generates structured decision briefs** with rationale and context
+- **Provides semantic search** for finding decisions and their context
+- **Maintains decision lineage** with source citations
+- **Integrates seamlessly** with existing team workflows
 
-- **Frontend**: Next.js 15 with React Server Components
-- **Styling**: Tailwind CSS
-- **State Management**: Zustand
-- **AI Providers**: Groq (Llama 3.1) and OpenRouter (multiple models)
-- **Storage**: Browser localStorage with fallback
-- **Type Safety**: TypeScript
+## 🏗️ Architecture
 
-## Architecture
+### Core Components
 
-The application follows a clean architecture pattern with the following layers:
+#### 1. **Ingestion Layer**
+- **Slack Integration** (`src/integrations/slack/`) - Real-time message ingestion with thread support
+- **Meeting Transcripts** (`src/integrations/meeting-transcripts/`) - Zoom/Google Meet transcript processing
+- **Unified Data Model** (`src/models/ConversationEvent.ts`) - Consistent structure for all conversation sources
 
-### Models
-- `DecisionBrief`: Structured representation of decisions with context, options, and outcomes
-- `DecisionCandidate`: Raw decision points detected in conversations
-- `ConversationBlock`: Chat messages with decision context
+#### 2. **Storage Layer**
+- **Encrypted Raw Storage** (`src/services/EncryptedStorageService.ts`) - Secure conversation storage with retention policies
+- **Decision Brief Store** (`src/services/DecisionBriefService.ts`) - Structured decision documentation
+- **Semantic Indexing** (`src/services/SemanticIndexingService.ts`) - Vector embeddings for semantic search
 
-### Services
-- `DecisionDetectionService`: AI-powered decision point detection
-- `DecisionContextService`: Context extraction and management
-- `LLMService`: Unified interface for AI providers
-- `StorageService`: Local storage management with fallback
+#### 3. **AI Processing Layer**
+- **Decision Detection Agent** (`src/agents/DecisionDetectionAgent.ts`) - Sliding window analysis with confidence scoring
+- **Context Extraction Agent** (`src/agents/ContextExtractionAgent.ts`) - Evidence gathering and context building
+- **Rationale Generation Agent** (`src/agents/RationaleGenerationAgent.ts`) - Structured decision briefs with citations
 
-### ViewModels
-- `DecisionDetectionViewModel`: Decision detection UI state
-- `DecisionBriefViewModel`: Decision brief management
-- `IngestionViewModel`: Document processing
-- `SearchViewModel`: Decision search and filtering
+#### 4. **Query & Retrieval Layer**
+- **Natural Language Query Service** (`src/services/NaturalLanguageQueryService.ts`) - Intent classification and query optimization
+- **Semantic Search** - Decision-first, conversation fallback retrieval
+- **Answer Generation** - Inline citations and source references
 
-### Components
-- Modern React components with TypeScript
-- Responsive design with Tailwind CSS
-- Accessible UI patterns
+#### 5. **Web Dashboard**
+- **Decision Timeline** - Chronological view of all decisions
+- **"Ask KnowWhy" Chat** - Natural language Q&A interface
+- **Feedback Loops** - User feedback for continuous improvement
 
-## Installation
+## 🚀 Quick Start
 
-1. Clone the repository:
+### Prerequisites
+
+- Node.js 18+
+- PostgreSQL database
+- OpenAI API key (for LLM features)
+- Slack workspace (for Slack integration)
+
+### Installation
+
+1. **Clone the repository:**
 ```bash
-git clone https://github.com/KameshEas/KnowWhy.git
-cd KnowWhy
+git clone https://github.com/your-org/knowwhy.git
+cd knowwhy
 ```
 
-2. Install dependencies:
+2. **Install dependencies:**
 ```bash
 npm install
 ```
 
-3. Set up environment variables:
-Create a `.env.local` file in the root directory:
-```env
-# Database
-DATABASE_URL="postgresql://username:password@localhost:5432/knowwhy?schema=public"
-
-# JWT Secret (generate a strong secret for production)
-JWT_SECRET="your-super-secret-jwt-key-change-this-in-production"
-
-# Groq API
-GROQ_API_KEY=your_groq_api_key
-
-# OpenRouter API
-OPENROUTER_API_KEY=your_openrouter_api_key
-
-# Optional: Custom model IDs
-GROQ_MODEL_ID=llama-3.1-70b-versatile
-OPENROUTER_MODEL_ID=anthropic/claude-sonnet-4-20250514
-```
-
-4. Set up database:
+3. **Set up environment variables:**
 ```bash
-# Generate Prisma client
-npx prisma generate
-
-# Run database migrations (requires PostgreSQL server)
-npx prisma migrate dev
+cp .env.example .env
+# Edit .env with your configuration
 ```
 
-5. Run the development server:
+4. **Set up database:**
+```bash
+npx prisma migrate dev
+npx prisma generate
+```
+
+5. **Start the development server:**
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to see the application.
+### Environment Configuration
 
-## Authentication Setup
+```bash
+# Database
+DATABASE_URL="postgresql://user:password@localhost:5432/knowwhy"
 
-The application includes a complete authentication system with PostgreSQL database:
+# Authentication
+NEXTAUTH_SECRET="your-secret-key"
+NEXTAUTH_URL="http://localhost:3000"
 
-### Database Requirements
-- PostgreSQL server (local or cloud-based)
-- Database name: `knowwhy` (or customize in DATABASE_URL)
-- Schema: `public`
+# LLM Providers
+OPENAI_API_KEY="your-openai-key"
+GROQ_API_KEY="your-groq-key"
 
-### User Registration & Login
-1. Visit `/auth` to register a new account
-2. Use the login form to sign in
-3. All application features require authentication
+# Slack Integration
+SLACK_BOT_TOKEN="xoxb-your-token"
+SLACK_SIGNING_SECRET="your-signing-secret"
+SLACK_CLIENT_ID="your-client-id"
+SLACK_CLIENT_SECRET="your-client-secret"
 
-### Security Features
-- Password hashing with bcrypt
-- JWT token-based authentication
-- HTTP-only cookies for secure token storage
-- Protected routes and API endpoints
-- User isolation (users can only access their own data)
+# Feature Flags
+ENABLE_DECISION_DETECTION=true
+ENABLE_SEMANTIC_SEARCH=true
+ENABLE_QUERY_OPTIMIZATION=true
+```
 
-## Usage
+## 📖 Usage
+
+### Slack Integration
+
+1. **Install the Slack app** in your workspace
+2. **Authorize the app** to access your channels
+3. **Configure channels** to monitor for decisions
+4. **Start conversing** - decisions are detected automatically
+
+### Web Dashboard
+
+1. **Visit the dashboard** at `http://localhost:3000`
+2. **Sign in** with your Slack account
+3. **View decisions** in the timeline view
+4. **Ask questions** using the "Ask KnowWhy" chat interface
+
+### API Usage
+
+```javascript
+// Detect decisions in a conversation
+const decisions = await DecisionDetectionService.detectDecisions(conversation);
+
+// Generate decision brief
+const brief = await DecisionBriefService.generateBrief(decision, context);
+
+// Search for decisions
+const results = await NaturalLanguageQueryService.processQuery(
+  "What decisions were made about the API design last week?",
+  userId
+);
+```
+
+## 🔧 Configuration
 
 ### Decision Detection
-1. Start a conversation in the chat interface
-2. The system will automatically detect decision points
-3. Review detected decisions in the sidebar
-4. Click on decisions to view detailed briefs
-
-### Decision Briefs
-1. Create structured decision briefs with:
-   - Decision context and background
-   - Available options with pros/cons
-   - Potential outcomes and impacts
-   - Implementation considerations
-
-### Multi-Model Support
-The application supports switching between AI providers:
-- **Groq**: Fast inference with Llama 3.1 models
-- **OpenRouter**: Access to multiple AI models from different providers
-
-## API Endpoints
-
-The application provides API routes for:
-
-- `/api/groq/decision-detection`: Decision detection using Groq
-- `/api/groq/brief-generation`: Decision brief generation using Groq
-- `/api/groq/chat`: Chat interface using Groq
-- `/api/openrouter/decision-detection`: Decision detection using OpenRouter
-- `/api/openrouter/brief-generation`: Decision brief generation using OpenRouter
-- `/api/openrouter/chat`: Chat interface using OpenRouter
-
-## Configuration
-
-### AI Provider Configuration
-
-Configure your preferred AI provider in the settings:
 
 ```typescript
-// src/config/groq.ts
-export const GROQ_CONFIG = {
-  apiKey: process.env.GROQ_API_KEY || '',
-  modelId: process.env.GROQ_MODEL_ID || 'llama-3.1-70b-versatile',
-  maxTokens: 4096,
-  temperature: 0.7,
-};
-
-// src/config/openrouter.ts
-export const OPENROUTER_CONFIG = {
-  apiKey: process.env.OPENROUTER_API_KEY || '',
-  modelId: process.env.OPENROUTER_MODEL_ID || 'anthropic/claude-sonnet-4-20250514',
-  maxTokens: 4096,
-  temperature: 0.7,
+// Configure detection sensitivity
+const config = {
+  confidenceThreshold: 0.7,        // Minimum confidence to consider a decision
+  slidingWindowSize: 10,           // Number of messages per analysis window
+  deduplicationWindow: 300,        // Seconds to deduplicate similar decisions
+  enableRepair: true,              // Enable decision repair for low confidence
 };
 ```
 
-### Rate Limiting
-
-The application includes built-in rate limiting to prevent API abuse:
+### Semantic Search
 
 ```typescript
-// src/utils/rate-limiter.ts
-const rateLimiter = new RateLimiter({
-  tokensPerInterval: 60,
-  interval: 'minute',
-  fireImmediately: true,
-});
+// Configure search behavior
+const searchConfig = {
+  model: 'text-embedding-3-small', // Embedding model
+  topK: 20,                        // Number of results to return
+  relevanceThreshold: 0.3,         // Minimum similarity score
+  enableQueryOptimization: true,   // Optimize user queries
+};
 ```
 
-## Development
+### Retention Policies
 
-### Project Structure
-
-```
-src/
-├── app/                    # Next.js app directory
-├── components/             # React components
-├── config/                 # Configuration files
-├── models/                 # TypeScript models
-├── services/               # Business logic services
-├── utils/                  # Utility functions
-└── viewmodels/             # View model classes
+```typescript
+// Configure data retention
+const retentionConfig = {
+  slack: 365,        // Keep Slack data for 1 year
+  zoom: 730,         // Keep Zoom transcripts for 2 years
+  jira: 1095,        // Keep Jira data for 3 years
+  upload: 365,       // Keep uploaded data for 1 year
+};
 ```
 
-### Running Tests
+## 🛡️ Security & Privacy
+
+### Data Encryption
+- **At Rest**: AES-256 encryption for all stored data
+- **In Transit**: TLS 1.3 for all API communications
+- **Key Management**: Secure key storage with rotation
+
+### Access Control
+- **OAuth 2.0**: Secure authentication via Slack
+- **Role-Based Access**: Organization-level permissions
+- **Audit Logging**: Complete audit trail of all operations
+
+### Data Retention
+- **Automatic Cleanup**: Configurable retention policies
+- **GDPR Compliance**: Right to be forgotten implementation
+- **Data Export**: Full data export capabilities
+
+## 📊 Monitoring & Observability
+
+### Metrics
+- Decision detection rate and accuracy
+- Query response times and success rates
+- Storage usage and retention compliance
+- User engagement and satisfaction
+
+### Logging
+- Structured logging with correlation IDs
+- Performance monitoring and alerting
+- Error tracking and debugging
+
+### Health Checks
+- Service availability monitoring
+- Database connection health
+- External API integration status
+
+## 🧪 Testing
 
 ```bash
+# Run all tests
 npm test
+
+# Run tests with coverage
+npm run test:coverage
+
+# Run specific test suite
+npm run test -- DecisionDetectionAgent.test.ts
+
+# Run integration tests
+npm run test:integration
 ```
 
-### Building for Production
+## 🚀 Deployment
+
+### Docker
 
 ```bash
-npm run build
-npm start
+# Build the image
+docker build -t knowwhy .
+
+# Run the container
+docker run -p 3000:3000 knowwhy
 ```
 
-## Contributing
+### Kubernetes
+
+```bash
+# Apply manifests
+kubectl apply -f k8s/
+
+# Scale the application
+kubectl scale deployment knowwhy --replicas=3
+```
+
+### Cloud Platforms
+
+- **AWS**: ECS, RDS, S3, Lambda
+- **GCP**: Cloud Run, Cloud SQL, Cloud Storage
+- **Azure**: Container Instances, Azure SQL, Blob Storage
+
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
 4. Add tests for new functionality
-5. Submit a pull request
+5. Run the test suite
+6. Submit a pull request
 
-## License
+## 📄 License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Support
+## 🙏 Acknowledgments
+
+- **Slack API Team** for their excellent platform and documentation
+- **OpenAI** for powerful LLM capabilities
+- **Prisma** for their fantastic ORM
+- **Next.js** for the amazing React framework
+
+## 📞 Support
 
 For support and questions:
-- Create an issue on GitHub
-- Check the documentation in the `docs/` directory
-- Review the implementation guide in `PHASE_2_3_IMPLEMENTATION_GUIDE.md`
+- **GitHub Issues**: For bugs and feature requests
+- **Discussions**: For general questions and community support
+- **Email**: support@knowwhy.ai
 
-## Acknowledgments
+---
 
-- Built with [Next.js](https://nextjs.org)
-- Styled with [Tailwind CSS](https://tailwindcss.com)
-- AI integration with [Groq](https://groq.com) and [OpenRouter](https://openrouter.ai)
+**Built with ❤️ for teams that want to remember their decisions**

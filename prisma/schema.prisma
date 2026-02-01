@@ -147,3 +147,31 @@ model SlackSyncStatus {
 
   @@map("slack_sync_status")
 }
+
+model RawData {
+  id              String   @id @default(cuid())
+  source          String   // "slack", "zoom", "jira", "upload", etc.
+  externalId      String   // Source-specific identifier for idempotency
+  encryptedData   String   // AES-256-GCM encrypted data
+  iv              String   // Initialization vector (base64)
+  authTag         String   // Authentication tag (base64)
+  metadata        Json     @default("{}") // Additional metadata
+  createdAt       DateTime @default(now())
+  expiresAt       DateTime // When this data should be purged
+  updatedAt       DateTime @updatedAt
+
+  @@map("raw_data")
+  @@unique([source, externalId])
+}
+
+model VectorEmbedding {
+  id              String   @id @default(cuid())
+  text            String   // Original text that was embedded
+  embedding       Float[]  // Vector embedding (array of floats)
+  source          String   // "conversation", "decision_brief", etc.
+  sourceId        String   // ID of the source object
+  metadata        Json     @default("{}") // Additional metadata
+  createdAt       DateTime @default(now())
+
+  @@map("vector_embeddings")
+}
