@@ -1,0 +1,94 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  conversations Conversation[]
+  decisions     DecisionCandidate[]
+  briefs        DecisionBrief[]
+
+  @@map("users")
+}
+
+model Conversation {
+  id              String   @id @default(cuid())
+  title           String
+  content         String
+  source          String   // "slack", "zoom", "googlemeet", "jira", "upload"
+  author          String?
+  timestamp       DateTime @default(now())
+  userId          String
+  slackMessageId  String?  // For idempotency + backfill tracking
+  slackChannelId  String?
+  slackThreadId   String?
+  externalId      String?  // zoom/jira/etc id for idempotency
+  metadata        Json     @default("{}")  // speaker, duration, etc
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  decisions DecisionCandidate[]
+
+  @@map("conversations")
+  @@unique([source, externalId])
+}
+
+model DecisionCandidate {
+  id              String   @id @default(cuid())
+  conversationId  String
+  isDecision      Boolean
+  summary         String
+  confidence      Float
+  agentVersion    String   @default("v1") // Track which prompt/model generated this
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String
+  brief        DecisionBrief?
+
+  @@map("decision_candidates")
+}
+
+model DecisionBrief {
+  id                  String   @id @default(cuid())
+  decisionSummary     String
+  problem             String
+  optionsConsidered   String[]
+  rationale           String
+  participants        String[]
+  sourceReferences    Json     // [{type: "slack", messageId, timestamp, url}, ...]
+  confidence          Float    @default(0.5) // 0-1 score from detection agent
+  status              String   @default("pending") // pending, approved, archived
+  tags                String[] @default([])
+  decisionCandidateId String?  @unique
+  userId              String
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // Relations
+  decisionCandidate DecisionCandidate? @relation(fields: [decisionCandidateId], references: [id], onDelete: SetNull)
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("decision_briefs")
+}

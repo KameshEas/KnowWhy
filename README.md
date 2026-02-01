@@ -61,6 +61,12 @@ npm install
 3. Set up environment variables:
 Create a `.env.local` file in the root directory:
 ```env
+# Database
+DATABASE_URL="postgresql://username:password@localhost:5432/knowwhy?schema=public"
+
+# JWT Secret (generate a strong secret for production)
+JWT_SECRET="your-super-secret-jwt-key-change-this-in-production"
+
 # Groq API
 GROQ_API_KEY=your_groq_api_key
 
@@ -72,12 +78,42 @@ GROQ_MODEL_ID=llama-3.1-70b-versatile
 OPENROUTER_MODEL_ID=anthropic/claude-sonnet-4-20250514
 ```
 
-4. Run the development server:
+4. Set up database:
+```bash
+# Generate Prisma client
+npx prisma generate
+
+# Run database migrations (requires PostgreSQL server)
+npx prisma migrate dev
+```
+
+5. Run the development server:
 ```bash
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) to see the application.
+
+## Authentication Setup
+
+The application includes a complete authentication system with PostgreSQL database:
+
+### Database Requirements
+- PostgreSQL server (local or cloud-based)
+- Database name: `knowwhy` (or customize in DATABASE_URL)
+- Schema: `public`
+
+### User Registration & Login
+1. Visit `/auth` to register a new account
+2. Use the login form to sign in
+3. All application features require authentication
+
+### Security Features
+- Password hashing with bcrypt
+- JWT token-based authentication
+- HTTP-only cookies for secure token storage
+- Protected routes and API endpoints
+- User isolation (users can only access their own data)
 
 ## Usage
 
