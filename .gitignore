@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+GROQ_INTEGRATION.md
+OPENROUTER_INTEGRATION.md
+PHASE_2_3_IMPLEMENTATION_GUIDE.md
+Phase_By_Phase_Development_Roadmap.md
+UI_DESIGN_GUIDE.md
+package-lock.json
