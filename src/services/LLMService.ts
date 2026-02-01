@@ -4,12 +4,22 @@ import { DecisionBrief } from '../models/DecisionBrief';
 import { rateLimiter } from '../utils/rate-limiter';
 
 export class LLMService {
+  // Configurable base URL and fetch function to make the service test-friendly
+  static baseUrl: string = process.env.LLM_BASE_URL || '';
+  static fetchFn: any = (globalThis as any).fetch?.bind(globalThis);
+
+  static configure(opts: { baseUrl?: string; fetchFn?: any }) {
+    if (opts.baseUrl !== undefined) this.baseUrl = opts.baseUrl;
+    if (opts.fetchFn !== undefined) this.fetchFn = opts.fetchFn;
+  }
+
   static async detectDecision(conversation: ConversationBlock): Promise<DecisionCandidate> {
     try {
       // Apply rate limiting before making the API call
       await rateLimiter.waitForRateLimit();
 
-      const response = await fetch('/api/groq/decision-detection', {
+      const url = new URL('/api/groq/decision-detection', this.baseUrl || 'http://localhost').toString();
+      const response = await (this.fetchFn ?? (globalThis as any).fetch)(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -50,7 +60,8 @@ export class LLMService {
       // Apply rate limiting before making the API call
       await rateLimiter.waitForRateLimit();
 
-      const response = await fetch('/api/groq/brief-generation', {
+      const url = new URL('/api/groq/brief-generation', this.baseUrl || 'http://localhost').toString();
+      const response = await (this.fetchFn ?? (globalThis as any).fetch)(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -92,7 +103,8 @@ export class LLMService {
       // Apply rate limiting before making the API call
       await rateLimiter.waitForRateLimit();
 
-      const response = await fetch('/api/groq/chat', {
+      const url = new URL('/api/groq/chat', this.baseUrl || 'http://localhost').toString();
+      const response = await (this.fetchFn ?? (globalThis as any).fetch)(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -112,7 +124,7 @@ export class LLMService {
 
       if (stream) {
         // Handle streaming response
-        const reader = response.body?.getReader();
+        const reader = response.body?.getReader?.();
         if (!reader) {
           throw new Error('No readable stream available');
         }
