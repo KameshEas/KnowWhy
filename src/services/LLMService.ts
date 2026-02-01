@@ -2,6 +2,7 @@ import { ConversationBlock } from '../models/ConversationBlock';
 import { DecisionCandidate } from '../models/DecisionCandidate';
 import { DecisionBrief } from '../models/DecisionBrief';
 import { rateLimiter } from '../utils/rate-limiter';
+import { metrics } from '../lib/metrics';
 
 export class LLMService {
   // Configurable base URL and fetch function to make the service test-friendly
@@ -17,6 +18,9 @@ export class LLMService {
     try {
       // Apply rate limiting before making the API call
       await rateLimiter.waitForRateLimit();
+
+      // Metrics: record LLM request
+      metrics.increment('llm_requests_total');
 
       const url = new URL('/api/groq/decision-detection', this.baseUrl || 'http://localhost').toString();
       const response = await (this.fetchFn ?? (globalThis as any).fetch)(url, {
@@ -41,6 +45,7 @@ export class LLMService {
         confidence: result.confidence || 0,
       };
     } catch (error) {
+      metrics.increment('llm_request_errors_total');
       console.error('Error detecting decision:', error);
       return {
         id: crypto.randomUUID(),
@@ -103,6 +108,9 @@ export class LLMService {
       // Apply rate limiting before making the API call
       await rateLimiter.waitForRateLimit();
 
+      // Metrics: record a request
+      metrics.increment('llm_requests_total');
+
       const url = new URL('/api/groq/chat', this.baseUrl || 'http://localhost').toString();
       const response = await (this.fetchFn ?? (globalThis as any).fetch)(url, {
         method: 'POST',
@@ -126,21 +134,28 @@ export class LLMService {
         // Handle streaming response
         const reader = response.body?.getReader?.();
         if (!reader) {
+          metrics.increment('llm_request_stream_errors_total');
           throw new Error('No readable stream available');
         }
 
         const decoder = new TextDecoder();
         let result = '';
         
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          
-          const chunk = decoder.decode(value, { stream: true });
-          result += chunk;
-          
-          // For streaming, we would need to handle this differently in the frontend
-          // For now, we'll collect the full response
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            const chunk = decoder.decode(value, { stream: true });
+            result += chunk;
+            
+            // For streaming, we would need to handle this differently in the frontend
+            // For now, we'll collect the full response
+          }
+        } catch (err) {
+          // If the reader itself throws, count it and surface a friendly message
+          metrics.increment('llm_request_stream_errors_total');
+          throw err;
         }
         
         return result || "No answer available.";
@@ -150,6 +165,7 @@ export class LLMService {
         return result.text || "No answer available.";
       }
     } catch (error) {
+      metrics.increment('llm_request_errors_total');
       console.error('Error asking question:', error);
       return "Sorry, I couldn't process your question at this time.";
     }
