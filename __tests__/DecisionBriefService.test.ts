@@ -1,4 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+// Mock Prisma client to avoid runtime import issues in unit tests
+vi.mock('../src/lib/db', () => ({
+  default: {
+    decisionBrief: { create: vi.fn() },
+  },
+}));
+
 import { DecisionBriefService } from '../src/services/DecisionBriefService';
 import { LLMService } from '../src/services/LLMService';
 import type { DecisionCandidate } from '../src/models/DecisionCandidate';

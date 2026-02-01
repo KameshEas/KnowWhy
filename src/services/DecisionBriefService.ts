@@ -2,6 +2,7 @@ import { DecisionCandidate } from '../models/DecisionCandidate';
 import { ConversationBlock } from '../models/ConversationBlock';
 import { LLMService } from './LLMService';
 import { validateDecisionBrief, DECISION_BRIEF_JSON_SCHEMA } from '../models/DecisionSchema';
+import prisma from '../lib/db';
 
 export class DecisionBriefService {
   /**
@@ -99,5 +100,34 @@ Please provide the brief now.`;
       valid: false,
       errors: lastErrors.length > 0 ? lastErrors : ['Model did not return valid JSON or conformed object.'],
     };
+  }
+
+  /**
+   * Persist a validated brief to the database via Prisma
+   * Returns the created DecisionBrief record
+   */
+  static async saveBrief(
+    brief: any,
+    userId: string,
+    decisionCandidateId?: string
+  ) {
+    // Map brief fields -> Prisma schema fields
+    const dbRecord = await prisma.decisionBrief.create({
+      data: {
+        decisionSummary: brief.title,
+        problem: brief.problem,
+        optionsConsidered: brief.optionsConsidered || [],
+        rationale: brief.rationale || '',
+        participants: brief.participants || [],
+        sourceReferences: brief.sourceReferences || [],
+        confidence: typeof brief.confidence === 'number' ? brief.confidence : 0,
+        status: brief.status || 'pending',
+        tags: brief.tags || [],
+        decisionCandidateId: decisionCandidateId || null,
+        userId,
+      },
+    });
+
+    return dbRecord;
   }
 }
