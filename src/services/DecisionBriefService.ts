@@ -4,6 +4,8 @@ import { LLMService } from './LLMService';
 import { validateDecisionBrief, DECISION_BRIEF_JSON_SCHEMA } from '../models/DecisionSchema';
 import prisma from '../lib/db';
 
+import { logger } from '../lib/logger';
+
 export class DecisionBriefService {
   /**
    * Generate a Decision Brief from a DecisionCandidate and conversation context.
@@ -61,10 +63,12 @@ Please provide the brief now.`;
         if (valid) {
           // Ensure confidence is present and numeric
           parsed.confidence = typeof parsed.confidence === 'number' ? parsed.confidence : decision.confidence ?? 0;
+          logger.info('DecisionBrief parsed and validated', { decisionId: decision.id, valid: true });
           return { brief: parsed, valid: true, errors: [] as string[] };
         } else {
           lastErrors = errors;
           // Ask model to fix the JSON to address these errors
+          logger.audit('repair_attempt', { decisionId: decision.id, attempt: attempt + 1, errors });
           const repairPrompt = `The JSON you returned does not conform to the required schema. The errors are: ${JSON.stringify(errors)}. ` +
             `Please return only a single corrected JSON object that satisfies the schema. Do not include any commentary.` +
             `\n\nSchema: ${JSON.stringify(DECISION_BRIEF_JSON_SCHEMA, null, 2)}` +
@@ -72,10 +76,14 @@ Please provide the brief now.`;
 
           const repaired = await LLMService.askQuestion(repairPrompt, model, false);
           parsed = await tryParseCandidateResponse(repaired);
+          if (parsed) {
+            logger.audit('repair_response_received', { decisionId: decision.id, attempt: attempt + 1 });
+          }
           continue;
         }
       } else {
         // Not JSON at all: ask to extract valid JSON
+        logger.audit('repair_attempt_not_json', { decisionId: decision.id, attempt: attempt + 1, snippet: raw?.slice?.(0, 500) });
         const repairPrompt = `The previous output was not valid JSON. Extract and return only a valid JSON object that conforms to this schema and contains the decision brief.` +
           `\n\nSchema: ${JSON.stringify(DECISION_BRIEF_JSON_SCHEMA, null, 2)}` +
           `\n\nOriginal output:\n${raw}`;
@@ -85,11 +93,15 @@ Please provide the brief now.`;
           const { valid, errors } = validateDecisionBrief(parsed);
           if (valid) {
             parsed.confidence = typeof parsed.confidence === 'number' ? parsed.confidence : decision.confidence ?? 0;
+            logger.info('DecisionBrief repaired from non-json and validated', { decisionId: decision.id, attempt: attempt + 1 });
             return { brief: parsed, valid: true, errors: [] as string[] };
           } else {
             lastErrors = errors;
+            logger.warn('Repaired JSON still invalid', { decisionId: decision.id, attempt: attempt + 1, errors });
             continue;
           }
+        } else {
+          logger.warn('Repair attempt did not return valid JSON', { decisionId: decision.id, attempt: attempt + 1 });
         }
       }
     }
